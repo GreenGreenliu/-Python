@@ -1,0 +1,88 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+m = 1       # 质量
+k = 100     # 刚度
+kesi = 0.05 # 阻尼比
+fmax = 1    # 外荷载输入
+T = 1       # 周期为1
+dt = 0.02   # 时间间隔
+n1 = 1000    # 时间步数,施加力的步数为500步
+
+# 生成外荷载输入信号f
+f = np.zeros(n1)
+for i in range(n1):
+    t = i * dt
+    if i<500:
+        f[i] = fmax * np.sin(2 * np.pi * t / T)
+    else:
+        f[i] = 0
+
+# 求解自由振动的频率
+w0 = np.sqrt(k / m)
+wd = w0 * np.sqrt(1 - kesi**2)
+
+# 初始化输出数组
+n2 = 1000
+u = np.zeros((1, n2))
+v = np.zeros((1, n2))
+aa = np.zeros((1, n2))
+T2 = np.zeros((1, n2))
+T3 = np.zeros((1, n2))
+T4 = np.zeros((1, n2))
+
+# 计算 Duhamel 积分
+for i in range(2, n2+1):
+    T2[0, i-1] = (i-1)*dt
+    if i > n1+1:
+        f[i-2] = 0
+    ut = np.zeros(i-1)
+    for j in range(1, i):
+        ut[j-1] = f[j-1] / (m*wd) * dt * np.exp(-kesi*w0*(T2[0,i-1]-T2[0,j-1])) * np.sin(wd*(T2[0,i-1]-T2[0,j-1]))
+    u[0,i-1] = np.sum(ut)
+
+# 计算速度和加速度
+for i in range(1, n2-1):
+    T3[0,i-1] = (i-1) * dt
+    v[0,i-1] = (u[0,i] - u[0,i-1]) / dt
+
+for i in range(1, n2-2):
+    T4[0,i-1] = (i-1) * dt
+    aa[0,i-1] = (v[0,i] - v[0,i-1]) / dt
+
+# 输出结果
+umax = np.max(u)
+umin = np.min(u)
+vmax = np.max(v)
+vmin = np.min(v)
+aamax = np.max(aa)
+aamin = np.min(aa)
+print(umax)
+print(umin)
+print(vmax)
+print(vmin)
+print(aamax)
+print(aamin)
+
+# 绘制相对位移时程图
+plt.figure(1)
+plt.plot(T2[0,:], u[0,:])
+plt.xlabel('Time(s)')
+plt.ylabel('Displacement(m)')
+plt.title('Displacement vs Time')
+
+# 绘制速度时程图
+plt.figure(2)
+plt.plot(T2[0,:], v[0,:])
+plt.xlabel('Time(s)')
+plt.ylabel('Velocity(m/s)')
+plt.title('Velocity vs Time')
+
+# 绘制加速度时程图
+plt.figure(3)
+plt.plot(T2[0,:], aa[0,:])
+plt.xlabel('Time(s)')
+plt.ylabel('Acceleration(m/s^2)')
+plt.title('Acceleration vs Time')
+
+plt.show()
