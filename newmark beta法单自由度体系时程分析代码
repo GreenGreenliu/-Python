@@ -1,0 +1,96 @@
+import numpy as np
+import matplotlib.pyplot as plt
+plt.style.use("dark_background")
+plt.rcParams['font.sans-serif'] = ['Microsoft Yahei']
+plt.rcParams['axes.unicode_minus'] = False
+m = 1
+k = 100
+kesi = 0.05
+fmax = 1
+T = 1
+dt = 0.02
+n1 = 1000
+
+t = np.arange(0, n1*dt, dt)
+ft = np.zeros_like(t)
+for i in range(n1):
+    if t[i]>10:
+        ft[i]=0
+    else:
+        ft[i] = fmax * np.sin(2 * np.pi * t[i] / T)
+
+w0 = np.sqrt(k / m)
+wD = w0 * np.sqrt(1 - kesi ** 2)
+c = 2 * kesi * m * w0
+
+beta = 0.25  # Newmark Beta法参数
+gamma = 0.5
+
+a0 = 1 / (beta * dt ** 2)
+a1 = gamma / (beta * dt)
+a2 = 1 / (beta * dt)
+a3 = 1 / (beta * 2) - 1
+a4 = gamma / beta - 1
+a5 = dt / 2 * (gamma / beta - 2)
+a6 = dt * (1 - gamma)
+a7 = gamma * dt
+
+K = k + a0 * m + a1 * c
+
+u0 = 0.0  # 初始位移
+v0 = 0.0
+n2 = 1000
+
+u = np.zeros(n2)
+v = np.zeros(n2)
+aa = np.zeros(n2)
+
+u[0] = u0
+v[0] = v0
+aa[0] = (ft[0] - c * v[0] - k * u[0]) / m
+
+for j in range(1, n2):
+    if j > n1:
+        ft[j] = 0
+
+    ff = ft[j] + m * (a0 * u[j - 1] + a2 * v[j - 1] + a3 * aa[j - 1]) + \
+         c * (a1 * u[j - 1] + a4 * v[j - 1] + a5 * aa[j - 1])
+
+    u[j] = ff / K
+
+    aa[j] = a0 * (u[j] - u[j - 1]) - a2 * v[j - 1] - a3 * aa[j - 1]
+
+    v[j] = v[j - 1] + a6 * aa[j - 1] + a7 * aa[j]
+
+umax = np.max(u)
+umin = np.min(u)
+vmax = np.max(v)
+vmin = np.min(v)
+aamax = np.max(aa)
+aamin = np.min(aa)
+print(umax)
+print(umin)
+print(vmax)
+print(vmin)
+print(aamax)
+print(aamin)
+
+#绘图
+fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(8, 12))
+
+# 位移u
+ax1.plot(t, u, label='Displacement')
+umax = np.max(u)
+umin = np.min(u)
+ax1.text(0.8, 0.80, f'最大位移 = {umax:.4f}\n最小位移 = {umin:.4f}', transform=ax1.transAxes, bbox=dict(facecolor='grey', alpha=0.2))
+ax1.set_xlim([0, 20])
+ax1.set_ylabel('位移 (m)')
+
+
+# 位移u
+ax2.plot(t, v, label='Displacement')
+vmax = np.max(v)
+vmin = np.min(v)
+ax2.text(0.8,-0.4, f'最大速度 = {vmax:.4f}\n最小速度 = {vmin:.4f}', transform=ax1.transAxes, bbox=dict(facecolor='grey', alpha=0.2))
+ax2.set_xlim([0, 20])
+ax2
