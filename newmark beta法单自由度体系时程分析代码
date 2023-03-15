@@ -93,4 +93,13 @@ vmax = np.max(v)
 vmin = np.min(v)
 ax2.text(0.8,-0.4, f'最大速度 = {vmax:.4f}\n最小速度 = {vmin:.4f}', transform=ax1.transAxes, bbox=dict(facecolor='grey', alpha=0.2))
 ax2.set_xlim([0, 20])
-ax2
+ax2.set_ylabel('速度 (m/s)')
+
+# 位移u
+ax3.plot(t, aa, label='Displacement')
+aamax = np.max(aa)
+aamin = np.min(aa)
+ax3.text(0.8, -1.6, f'最大加速度 = {aamax:.4f}\n最小加速度 = {aamin:.4f}', transform=ax1.transAxes, bbox=dict(facecolor='grey', alpha=0.2))
+ax3.set_xlim([0, 20])
+ax3.set_ylabel('加速度 (m/s^2)')
+plt.show()
