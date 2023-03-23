@@ -1,0 +1,33 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import math
+plt.style.use("classic")
+plt.rcParams['font.sans-serif'] = ['SimSun']
+plt.rcParams['axes.unicode_minus'] = False
+def f(t):
+    if 0<= t <= 0.63:#t1、t2分别为主震平稳段首末时间
+        return (t/0.63)**2
+    elif 0.63 <= t <= 1.34:
+        return 1
+    elif 1.34 <= t <= 30:
+        return math.exp(-0.867*(t-1.34))#c为衰减系数，控制下降段衰减的快慢
+#td为地震动总持时
+#根据上表可获得某特定震级和震中距下平稳段首末时间
+#t1、t2及衰减系数c的取值，进而获得均匀调制函数。
+t_range = np.linspace(0, 12, 500)      
+f_range = [f(t) for t in t_range]
+fig, ax = plt.subplots()
+line, = ax.plot(t_range, f_range, lw=3)
+#by zj-green kunpengxuetang
+ax.annotate('强度包络曲线', xy=(2.2, 0.5), xytext=(4, 0.6),
+            arrowprops=dict(facecolor='red', shrink=0.05),
+            )
+ax.set_xlabel("时间 (s)")
+ax.set_ylabel("强度包络曲线")
+ax.set_ylim(0,1.25)
+plt.show()
+
+#导出文件
+with open("data.txt", "w") as file:
+    for i in range(len(t_range)):
+        file.write(str(t_range[i]) + " " + str(f_range[i]) + "\n")
