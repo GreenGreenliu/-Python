@@ -1,0 +1,141 @@
+import tkinter as tk
+from tkinter import filedialog
+import numpy as np
+import matplotlib.pyplot as plt
+import time
+start_time = time.time()
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import scipy.integrate as spi
+import webbrowser
+plt.style.use("classic")
+plt.rcParams['font.sans-serif'] = ['Microsoft Yahei']
+plt.rcParams['axes.unicode_minus'] = False
+class Application(tk.Frame):
+    def __init__(self, master=None):
+        super().__init__(master)
+        self.master = master
+        self.master.title("单自由度体系动力时程分析Newmakbeta求解by-ZjGreen")
+        self.grid()
+        self.master.iconbitmap('avd.ico') 
+        self.create_control_panel()
+        self.create_canvas()
+    def create_control_panel(self):
+        self.import_button = tk.Button(self, text="导入地震波", command=self.import_file, padx=10, pady=10, font=("Arial", 15))
+        self.import_button.grid(row=0, column=0,columnspan=2)
+        self.dt_label = tk.Label(self, text="时间间隔（s）:", padx=10, pady=10, font=("Arial", 15))
+        self.dt_label.grid(row=1, column=0)
+        self.dt_entry = tk.Entry(self, font=("Arial", 15), width=10)
+        self.dt_entry.insert(0, "0.01")
+        self.dt_entry.grid(row=1, column=1, padx=10, pady=10)
+        self.derive_button = tk.Button(self, text="计算", command=self.derive, padx=10, pady=10, font=("Arial", 15))
+        self.derive_button.grid(row=2, column=0,columnspan=2)
+        self.clear_button = tk.Button(self, text="清除图像", command=self.clear_plots, padx=10, pady=10, font=("Arial", 15))
+        self.clear_button.grid(row=3, column=0,columnspan=2)
+        self.export_button = tk.Button(self, text="导出", command=self.export_data, padx=10, pady=10, font=("Arial", 15))
+        self.export_button.grid(row=4, column=0,columnspan=2)
+        menubar = tk.Menu(self.master)
+        help_menu = tk.Menu(menubar, tearoff=0)
+        help_menu.add_command(label="操作演示", command=lambda: self.open_help_page("https://mp.weixin.qq.com/s/KSRiV4jUGMRVszHD2Ku5tw"))
+        help_menu.add_command(label="交流", command=self.show_about)
+        menubar.add_cascade(label="帮助", menu=help_menu)
+        self.master.config(menu=menubar)       
+    def open_help_page(self, url):
+        webbrowser.open_new(url)
+    def show_about(self):
+        tk.messagebox.showinfo("联系方式", "QQ:2997817513\n公众号：《鲲鹏学堂》\n期待与您合作。")
+    def create_canvas(self):
+        self.figure = plt.figure(figsize=(12, 9))
+        self.subplot1 = self.figure.add_subplot(4, 1, 1)
+        self.subplot2 = self.figure.add_subplot(4, 1, 2)
+        self.subplot3 = self.figure.add_subplot(4, 1, 3)
+        self.subplot4 = self.figure.add_subplot(4, 1, 4)
+        self.canvas = FigureCanvasTkAgg(self.figure, master=self)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().grid(row=0, column=3, rowspan=10,columnspan=3)
+    def import_file(self):
+        file_path = filedialog.askopenfilename()
+        self.data = np.genfromtxt(file_path)
+        self.subplot1.clear()
+        self.subplot1.plot(self.data[:, 0], self.data[:, 1])
+        self.subplot1.set_title("地震波加速度输入")
+        self.subplot1.set_xlim([0, self.data[-1, 0]])
+        self.canvas.draw()
+    def derive(self):
+        dt = float(self.dt_entry.get())
+        ts = self.data[:, 0]
+        acc0 = self.data[:, 1]
+        n = len(acc0)
+        t = np.linspace(0.0,dt*(n-1),n)
+        ag = acc0
+        kesi = 0.05
+        n = len(ag)
+        gama = 0.5
+        beta = 0.25
+        u0 = 0.0
+        v0 = 0.0
+        m=1
+        k=100
+        wn=np.sqrt(k/m)
+        wd=wn*np.sqrt(1-kesi**2)
+        c=2*kesi*wn*m
+        a0=1/(beta*dt**2)
+        a1=gama/(beta*dt)
+        a2=1/(beta*dt)
+        a3=1/(2*beta)-1
+        a4=gama/beta-1
+        a5=dt/2*(gama/beta-2)
+        a6=dt*(1-gama)
+        a7=gama*dt
+        K=k+a0*m+a1*c
+        u = np.zeros(n)
+        v = np.zeros(n)
+        a = np.zeros(n)
+        aa= np.zeros(n)
+        u[0] = u0
+        v[0] = v0
+        ag[0]=-m*ag[0]
+        a[0] = (ag[0]-c*v[0]-k*u[0])/m
+        aa[0]=a[0]+ag[0]
+        for i in range(n-1):
+            ff=ag[i+1]+m*(a0*u[i]+a2*v[i]+a3*a[i]+c*(a1*u[i]+a4*v[i]+a5*a[i]))
+            u[i+1] = ff/K
+            a[i+1] = a0*(u[i+1]-u[i]) - a2*v[i] - a3*a[i]
+            v[i+1] = v[i]+a6*a[i]+a7*a[i+1]
+            aa[i+1] = ag[i+1]+a[i+1]
+        umax = np.max(u)
+        umin = np.min(u)
+        vmax = np.max(v)
+        vmin = np.min(v)
+        aamax = np.max(aa)
+        aamin = np.min(aa)
+        self.v=v
+        self.u=u
+        self.aa=aa
+        self.subplot2.clear()
+        self.subplot2.plot(t, v)
+        self.subplot2.set_title("相对速度响应时程")
+        self.subplot2.set_xlim(0,t[-1])    
+        self.subplot3.clear()
+        self.subplot3.plot(t, u)
+        self.subplot3.set_title("相对位移响应时程")
+        self.subplot3.set_xlim(0,t[-1])
+        self.subplot3.set_xlabel(r"时间 (s)")
+        self.subplot4.clear()
+        self.subplot4.plot(t, aa)
+        self.subplot4.set_title("绝对加速度响应时程")
+        self.subplot4.set_xlim(0,t[-1])
+        self.subplot4.set_xlabel(r"时间 (s)")
+        self.figure.tight_layout()
+        self.canvas.draw()
+    def export_data(self):
+        file_path = filedialog.asksaveasfilename(defaultextension=".txt")
+        np.savetxt(file_path, np.vstack((self.data[:, 0], self.v, self.u ,self.aa)).T)
+    def clear_plots(self):
+        self.subplot1.clear()
+        self.subplot2.clear()
+        self.subplot3.clear()
+        self.subplot4.clear()       
+        self.canvas.draw()
+root = tk.Tk()
+app = Application(master=root)
+app.mainloop()
